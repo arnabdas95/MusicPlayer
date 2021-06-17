@@ -2,8 +2,7 @@ from tkinter import *
 import random
 import mutagen
 import pygame
-from mutagen.mp3 import MP3
-from tkinter import filedialog, ttk
+from tkinter import filedialog
 import re
 import time
 import eyed3
@@ -13,35 +12,32 @@ root.title('Rythmic Mp3 player')
 root.resizable(height=False, width=False)
 root.configure(background='#1c383d')
 root.geometry("700x400")
-#root.iconbitmap('images/play_1.png')
-
-# for dynamic background
-random_bg = random.randint(1, 4)
-song_length = 0
+# root.iconbitmap('images/mp3.ico')
 
 canvas = Canvas(root, width=700, height=400, bg="#1c383d", bd=0, highlightthickness=0)
-
 BACKGROUND = PhotoImage(file="images/logo.png")
 my_bck = canvas.create_image(0, 0, image=BACKGROUND, anchor=NW)
 
-current_song = False
 pygame.mixer.init()
+current_song = False
 song_locator_diary = {}
 theme_is_changed = False
 
+
 # add many songs
 def add_many_songs():
-    global theme_is_changed
-    global sorted_song, song_locator_diary, my_bck, BACKGROUND
-    songs = filedialog.askopenfilenames(initialdir='music/', title="choose a song", filetypes=(("mp3 Files", "*.mp3"),))
+    global sorted_song, song_locator_diary, my_bck, BACKGROUND, theme_is_changed
+    songs = filedialog.askopenfilenames(initialdir='music/', title="Choose songs", filetypes=(("mp3 Files", "*.mp3"),))
     for song in songs:
         sorted_song = re.split(': |/|.mp3', song)
         song_box.insert(END, sorted_song[-2])
         song_locator_diary[sorted_song[-2]] = song
-    if not theme_is_changed:
-        print(theme_is_changed)
-        BACKGROUND = PhotoImage(file="images/floral.png")
-        my_bck = canvas.create_image(-300, 0, image=BACKGROUND, anchor=NW)
+    if len(song_locator_diary):
+        if not theme_is_changed:
+            print(theme_is_changed)
+            BACKGROUND = PhotoImage(file="images/floral.png")
+            my_bck = canvas.create_image(-300, 0, image=BACKGROUND, anchor=NW)
+            song_box_lbl.place(x=30, y=20)
 
 
 def play():
@@ -61,10 +57,8 @@ def play():
             about__to_play = song_locator_diary[get_song]
             pygame.mixer.music.load(about__to_play)
             pygame.mixer.music.play(loops=0)
-            # queing_next_song()
-
+            play_btn.config(image=RESUME_IMG)
             current_song = song_box.curselection()
-
             get_song_info(about__to_play)
             get_current_time()
             seek.config(to=song_length)
@@ -73,66 +67,30 @@ def play():
 def pause():
     if pygame.mixer.music.get_busy():
         pygame.mixer.music.pause()
-
+        play_btn.config(image=PLAY_IMG)
     else:
         pygame.mixer.music.unpause()
+        if seek.get()!=0:
+         play_btn.config(image=RESUME_IMG)
 
 
 def stop():
-    current_time_lbl.after_cancel(clock)
     pygame.mixer.music.stop()
+    play_btn.config(image=PLAY_IMG)
     seek.set(0)
+    try:
+     current_time_lbl.after_cancel(clock)
+     current_time_lbl.config(text="00:00")
+    except:
+        pass
+
     # song_box.selection_clear(ACTIVE)
-    current_time_lbl.config(text="00:00")
 
 
-# def rewind1():
-#     next_music_no = song_box.curselection()
-#     # initially no music is selected and playing then pressing this throw error
-#     if next_music_no != () and next_music_no[0]!=0:
-#         next_music_no = next_music_no[0] - 1
-#         next_music = song_box.get(next_music_no)
-#         about__to_play = song_locator_diary[next_music]
-#         pygame.mixer.music.load(about__to_play)
-#         pygame.mixer.music.play(loops=0)
-#         # change active bar
-#         song_box.selection_clear(0, END)
-#         # activate the bar to next song
-#         song_box.activate(next_music_no)
-#         song_box.selection_set(next_music_no, last=None)
-#         print(next_music_no)
 
-
-# def forword1():
-#     next_music_no = song_box.curselection()
-#     # initially no music is selected and playing then pressing this throw error
-#     if next_music_no != False and next_music_no[-1]!=len(song_locator_diary) - 1:
-#         next_music_no = next_music_no[0] - 1
-#         next_music = song_box.get(next_music_no)
-#         about__to_play = song_locator_diary[next_music]
-#         pygame.mixer.music.load(about__to_play)
-#         pygame.mixer.music.play(loops=0)
-#         # change active bar
-#         song_box.selection_clear(0, END)
-#         # activate the bar to next song
-#         song_box.activate(next_music_no)
-#         song_box.selection_set(next_music_no, last=None)
-#         print(next_music_no)
-
-# def queing_next_song():
-#     global current_song
-#     if current_song != False and current_song[-1] != len(song_locator_diary) - 1:
-#         temp1 = current_song
-#         temp1 = temp1[0] + 1
-#         next_music = song_box.get(temp1)
-#         about__to_play = song_locator_diary[next_music]
-#         pygame.mixer.music.queue(about__to_play)
-#         print(about__to_play)
-
-
+# forn continue the next song check current time and song length if eqal then forward
 def check_if_finished(slide_time=0):
     global current_time, song_length
-
     if int(current_time) + 1 >= int(song_length) or int(slide_time) + 1 >= int(song_length):
         current_time_lbl.config(text="00:00")
         seek.set(0)
@@ -155,6 +113,7 @@ def forword():
         song_box.selection_set(temp1, last=None)
         current_song = song_box.curselection()
         get_song_info(about__to_play)
+        play_btn.config(image=RESUME_IMG)
         seek.set(0)
 
 
@@ -173,12 +132,13 @@ def rewind():
         song_box.selection_set(temp1, last=None)
         current_song = song_box.curselection()
         get_song_info(about__to_play)
+        play_btn.config(image=RESUME_IMG)
         seek.set(0)
 
 
 def delete_playlist():
     global title, artist, album, current_song, my_bck, current_time, about_to_play, BACKGROUND
-    pygame.mixer.music.stop()
+    stop()
     song_box.delete(0, END)
     # clear the dictionary
     song_locator_diary.clear()
@@ -188,9 +148,6 @@ def delete_playlist():
     canvas.delete(album)
     seek.set(0)
     current_time = 0
-    # BACKGROUND = PhotoImage(file="images/logo.png")
-    # my_bck = canvas.create_image(0, 0, image=BACKGROUND, anchor=NW)
-    # canvas.pack()
 
 
 def delete_song():
@@ -212,13 +169,8 @@ def delete_song():
         delete_playlist()
 
 
-# get current time of song
-l = 0
-
-
 def get_current_time():
-    global clock, current_time, l, slide_time
-
+    global clock, current_time, slide_time
     current_time = 0
     slide_time = 0
     if int(seek.get() + 1) == int(pygame.mixer.music.get_pos() / 1000):
@@ -228,14 +180,13 @@ def get_current_time():
         current_time_lbl.config(text=temp_current_time)
         seek.set(current_time)
     else:
-        # current_time = pygame.mixer.music.get_pos() / 1000
         if pygame.mixer.music.get_busy():
             slide_time = seek.get() + 1
             temp_current_time = time.strftime('%M:%S', time.gmtime(slide_time))
             current_time_lbl.config(text=temp_current_time)
             seek.set(slide_time)
-    check_if_finished(slide_time)
 
+    check_if_finished(slide_time)
     clock = current_time_lbl.after(1000, get_current_time)
 
 
@@ -268,7 +219,7 @@ def update_title_artist_album(song_details):
 
 
 def change_theme(thms):
-    global BACKGROUND, about__to_play, my_bck,theme_is_changed
+    global BACKGROUND, about__to_play, my_bck, theme_is_changed
     if thms == 7:
         BACKGROUND = PhotoImage(file="images/cycle.png")
         my_bck = canvas.create_image(0, 0, image=BACKGROUND, anchor=NW)
@@ -295,7 +246,7 @@ def change_theme(thms):
         BACKGROUND = PhotoImage(file="images/vintage.png")
         my_bck = canvas.create_image(0, -50, image=BACKGROUND, anchor=NW)
     try:
-        theme_is_changed =True
+        theme_is_changed = True
         get_song_info(about__to_play)
     except:
         pass
@@ -306,23 +257,32 @@ def vol_control(event):
 
 
 def seek_control(event):
-    global current_time, clock, l
-    # current_time_lbl.after_cancel(clock)
-    current_time = seek.get()
-    seek.set(seek.get())
-    # print(current_time)
-    pygame.mixer.music.set_pos(seek.get())
-    l = 100
-    # get_current_time()
+    try:
+        pygame.mixer.music.set_pos(seek.get())
+    except:
+        pass
+
+
+def forword_evnt(event):
+    forword()
+def rewind_evnt(event):
+    rewind()
+def pause_evnt(event):
+    pause()
+def play_evnt(event):
+    play()
+
+
+
 
 
 # create plalist box
+song_box_lbl = Label(root, text="------Songs to Play------", bg="#1c383d", fg='#e6f5ff', font=('Helvetica 10 bold'))
 song_box = Listbox(root, fg="white", width=50, height=20, bg="#1c383d", selectforeground="#e6f5ff", font="Helvetica 8",
                    selectbackground="#36789e", bd=10, highlightthickness=0, relief='flat')
 song_box.pack(side=LEFT)
 
 # create a song seek slider
-# seek = ttk.Scale(root,orient=HORIZONTAL,length=295,value=0,command="seek_song")
 seek = Scale(root, orient=HORIZONTAL, width=8, bd=0, highlightthickness=0, length=185, showvalue=0, bg="#1c383d",
              fg="yellow", troughcolor="#36789e", variable=0)
 seek.place(anchor='sw', x=12, y=382)
@@ -338,6 +298,7 @@ vol_slide.place(anchor='se', x=320, y=382)
 # create music control button
 PLAY_IMG = PhotoImage(file="images/play_1.png")
 PAUSE_IMG = PhotoImage(file="images/pause.png")
+RESUME_IMG =PhotoImage(file="images/resume.png")
 STOP_IMG = PhotoImage(file="images/stop.png")
 FORWARD_IMG = PhotoImage(file="images/forword.png")
 REWIND_IMG = PhotoImage(file="images/rewind.png")
@@ -369,15 +330,15 @@ current_time_lbl.grid(row=0, column=0, padx=10)
 my_menu = Menu(root)
 root.config(menu=my_menu)
 add_song_menu = Menu(my_menu, tearoff=0)
-my_menu.add_cascade(label="add_song", menu=add_song_menu)
+my_menu.add_cascade(label="Add playlist", menu=add_song_menu, command=add_many_songs)
 # add_song_menu.add_command(label = "add one song" ,command=add_song)
-add_song_menu.add_command(label="add many song", command=add_many_songs)
+add_song_menu.add_command(label="Add Songs", command=add_many_songs)
 
 # delete song menu
 remove_song_menu = Menu(my_menu, tearoff=0)
 my_menu.add_cascade(label="Remove songs", menu=remove_song_menu)
-remove_song_menu.add_command(label="delete song", command=delete_song)
-remove_song_menu.add_command(label="delete playlist", command=delete_playlist)
+remove_song_menu.add_command(label="Remove it", command=delete_song)
+remove_song_menu.add_command(label="Remove playlist", command=delete_playlist)
 
 change_theme_menu = Menu(my_menu, tearoff=0)
 my_menu.add_cascade(label="Themes", menu=change_theme_menu)
@@ -396,5 +357,8 @@ vol_slide.bind("<Button-1>", vol_control)
 vol_slide.bind('<Motion>', vol_control)
 seek.bind("<Button-1>", seek_control)
 seek.bind('<ButtonRelease>', seek_control)
-
+root.bind('<Left>',rewind_evnt)
+root.bind('<Right>',forword_evnt)
+root.bind('<Return>',play_evnt)
+root.bind('<space>',pause_evnt)
 root.mainloop()
